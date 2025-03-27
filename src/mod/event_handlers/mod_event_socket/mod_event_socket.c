@@ -32,6 +32,7 @@
  */
 #include <switch.h>
 #define CMD_BUFLEN 1024 * 1000
+#define MAX_LOG_CMD_LEN 256
 #define MAX_QUEUE_LEN 100000
 #define MAX_MISSED 500
 SWITCH_MODULE_LOAD_FUNCTION(mod_event_socket_load);
@@ -131,6 +132,7 @@ static struct {
 	uint32_t id;
 	int nat_map;
 	int stop_on_bind_error;
+	switch_log_level_t command_log_level;
 } prefs;
 
 
@@ -1708,6 +1710,48 @@ static void set_allowed_custom(listener_t *listener)
 	}
 }
 
+static void log_event_socket_command(listener_t *listener, const char *cmd) {
+	if (prefs.command_log_level == SWITCH_LOG_INVALID
+		|| strncasecmp(cmd, "auth ", 5) == 0
+		|| strncasecmp(cmd, "userauth ", 5) == 0) {
+		return;
+	}
+
+	char cmd_clean[MAX_LOG_CMD_LEN + 3] = {0};
+	size_t cmd_len = strlen(cmd);
+	size_t copy_len = cmd_len < MAX_LOG_CMD_LEN ? cmd_len : MAX_LOG_CMD_LEN;
+	size_t i, j = 0;
+
+	/* Find first newline and limit copying to that */
+	for (i = 0; i < cmd_len; i++) {
+		if (cmd[i] == '\r' || cmd[i] == '\n') {
+			copy_len = i < copy_len ? i : copy_len;
+			break;
+		}
+	}
+
+	/* Copy and clean up the command */
+	for (i = 0; i < copy_len && j < MAX_LOG_CMD_LEN; i++) {
+		/* Keep only printable chars and space */
+		if ((cmd[i] >= 32 || cmd[i] == '\t') && cmd[i] != 127) {
+			cmd_clean[j++] = cmd[i];
+		}
+	}
+
+	cmd_clean[j] = '\0';
+
+	/* Add ellipsis only if we truncated due to MAX_LOG_CMD_LEN */
+	if (cmd_len > MAX_LOG_CMD_LEN) {
+		strncat(cmd_clean, "…", sizeof(cmd_clean) - j - 1);
+	}
+
+	if (strlen(cmd_clean) > 0) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, prefs.command_log_level,
+						 "Event Socket Command from %s:%d: %s",
+						 listener->remote_ip, listener->remote_port, cmd_clean);
+	}
+}
+
 static switch_status_t parse_command(listener_t *listener, switch_event_t **event, char *reply, uint32_t reply_len)
 {
 	switch_status_t status = SWITCH_STATUS_SUCCESS;
@@ -1722,6 +1766,8 @@ static switch_status_t parse_command(listener_t *listener, switch_event_t **even
 		switch_snprintf(reply, reply_len, "-ERR command parse error.");
 		goto done;
 	}
+
+	log_event_socket_command(listener, cmd);
 
 	if (switch_stristr("unload", cmd) && switch_stristr("mod_event_socket", cmd)) {
 		cmd = unload_cheat;
@@ -2871,6 +2917,7 @@ static int config(void)
 	switch_xml_t cfg, xml, settings, param;
 
 	memset(&prefs, 0, sizeof(prefs));
+	prefs.command_log_level = SWITCH_LOG_INFO;
 
 	if (!(xml = switch_xml_open_cfg(cf, &cfg, NULL))) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Open of %s failed\n", cf);
@@ -2900,6 +2947,20 @@ static int config(void)
 					}
 				} else if (!strcasecmp(var, "stop-on-bind-error")) {
 					prefs.stop_on_bind_error = switch_true(val) ? 1 : 0;
+				} else if (!strcasecmp(var, "command-log-level")) {
+					if (!zstr(val)) {
+						if (!strcasecmp(val, "none") || !strcasecmp(val, "off") || !strcasecmp(val, "disabled")) {
+							prefs.command_log_level = SWITCH_LOG_INVALID;
+						} else {
+							switch_log_level_t level = switch_log_str2level(val);
+							if (level != SWITCH_LOG_INVALID) {
+								prefs.command_log_level = level;
+							} else {
+								switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
+									 "Invalid command-log-level: %s, using default INFO\n", val);
+							}
+						}
+					}
 				}
 			}
 		}
