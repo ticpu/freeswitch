@@ -3649,7 +3649,7 @@ sofia_gateway_t *sofia_reg_find_gateway_by_realm__(const char *file, const char 
 	}
 	if (gateway) {
 #ifdef SOFIA_DEBUG_RWLOCKS
-		switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW LOCK %s\n", gateway->profile->name);
+		switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, NULL, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW LOCK %s\n", gateway->profile->name);
 #endif
 	}
 
@@ -3664,7 +3664,7 @@ switch_status_t sofia_reg_gateway_rdlock__(const char *file, const char *func, i
 
 #ifdef SOFIA_DEBUG_RWLOCKS
 	if (status == SWITCH_STATUS_SUCCESS) {
-		switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW LOCK %s\n", gateway->profile->name);
+		switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, NULL, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW LOCK %s\n", gateway->profile->name);
 	}
 #endif
 
@@ -3676,7 +3676,7 @@ void sofia_reg_release_gateway__(const char *file, const char *func, int line, s
 {
 	switch_thread_rwlock_unlock(gateway->profile->rwlock);
 #ifdef SOFIA_DEBUG_RWLOCKS
-	switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW UNLOCK %s\n", gateway->profile->name);
+	switch_log_printf(SWITCH_CHANNEL_ID_LOG, file, func, line, NULL, SWITCH_LOG_ERROR, "XXXXXXXXXXXXXX GW UNLOCK %s\n", gateway->profile->name);
 #endif
 }
 
