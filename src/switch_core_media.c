@@ -1664,6 +1664,11 @@ static void switch_core_session_parse_crypto_prefs(switch_core_session_t *sessio
 			smh->crypto_suite_order[k++] = SUITES[i].type;
 		}
 	}
+
+	if (smh->crypto_mode != CRYPTO_MODE_FORBIDDEN && switch_media_handle_test_media_flag(smh, SCMF_DISABLE_SAVP)) {
+		smh->crypto_mode = CRYPTO_MODE_FORBIDDEN;
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Forcing crypto_mode to 'forbidden' because of disable-savp in profile\n");
+	}
 }
 
 SWITCH_DECLARE(int) switch_core_session_check_incoming_crypto(switch_core_session_t *session,
@@ -2008,6 +2013,10 @@ SWITCH_DECLARE(switch_status_t) switch_media_handle_create(switch_media_handle_t
 		*smhp = session->media_handle;
 		switch_set_flag(session->media_handle, SMF_INIT);
 		session->media_handle->media_flags[SCMF_RUNNING] = 1;
+
+		if (switch_media_handle_test_media_flag(session->media_handle, SCMF_DISABLE_SAVP)) {
+			session->media_handle->crypto_mode = CRYPTO_MODE_FORBIDDEN;
+		}
 
 		session->media_handle->engines[SWITCH_MEDIA_TYPE_AUDIO].read_frame.buflen = SWITCH_RTP_MAX_BUF_LEN;
 		session->media_handle->engines[SWITCH_MEDIA_TYPE_AUDIO].type = SWITCH_MEDIA_TYPE_AUDIO;
@@ -10782,7 +10791,7 @@ SWITCH_DECLARE(void) switch_core_media_gen_local_sdp(switch_core_session_t *sess
 		//switch_snprintf(buf + strlen(buf), SDPBUFLEN - strlen(buf), "a=encryption:optional\r\n");
 		}
 
-		if (a_engine->reject_avp) {
+		if (a_engine->crypto_type != CRYPTO_INVALID && a_engine->reject_avp) {
 			switch_snprintf(buf + strlen(buf), SDPBUFLEN - strlen(buf), "m=audio 0 RTP/AVP 19\r\n");
 		}
 

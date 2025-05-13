@@ -4666,6 +4666,7 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 					profile->auto_restart = 1;
 					sofia_set_media_flag(profile, SCMF_AUTOFIX_TIMING);
 					sofia_set_media_flag(profile, SCMF_RTP_AUTOFLUSH_DURING_BRIDGE);
+					sofia_clear_media_flag(profile, SCMF_DISABLE_SAVP);
 					profile->contact_user = SOFIA_DEFAULT_CONTACT_USER;
 					sofia_set_pflag(profile, PFLAG_PASS_CALLEE_ID);
 					sofia_set_pflag(profile, PFLAG_ALLOW_UPDATE);
@@ -5125,6 +5126,12 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 						} else {
 							profile->mndlb &= ~SM_NDLB_DISABLE_SRTP_AUTH;
 						}
+					} else if (!strcasecmp(var, "disable-savp")) {
+						if (switch_true(val)) {
+							sofia_set_media_flag(profile, SCMF_DISABLE_SAVP);
+						} else {
+							sofia_clear_media_flag(profile, SCMF_DISABLE_SAVP);
+						}
 					} else if (!strcasecmp(var, "user-agent-filter")) {
 						profile->user_agent_filter = switch_core_strdup(profile->pool, val);
 					} else if (!strcasecmp(var, "max-registrations-per-extension") && !zstr(val)) {
@@ -5484,6 +5491,12 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 							profile->cng_pt = 0;
 						} else {
 							sofia_clear_media_flag(profile, SCMF_SUPPRESS_CNG);
+						}
+					} else if (!strcasecmp(var, "disable-savp")) {
+						if (switch_true(val)) {
+							sofia_set_media_flag(profile, SCMF_DISABLE_SAVP);
+						} else {
+							sofia_clear_media_flag(profile, SCMF_DISABLE_SAVP);
 						}
 					} else if (!strcasecmp(var, "NDLB-broken-auth-hash")) {
 						if (switch_true(val)) {

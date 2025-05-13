@@ -80,6 +80,7 @@ typedef enum {
 	SCMF_MULTI_ANSWER_AUDIO,
 	SCMF_MULTI_ANSWER_VIDEO,
 	SCMF_RECV_SDP,
+	SCMF_DISABLE_SAVP,
 	SCMF_MAX
 } switch_core_media_flag_t;
 
