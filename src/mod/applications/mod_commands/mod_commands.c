@@ -7189,6 +7189,33 @@ SWITCH_STANDARD_API(getenv_function)
 	return SWITCH_STATUS_SUCCESS;
 }
 
+#define SETENV_SYNTAX "<name=val>"
+SWITCH_STANDARD_API(setenv_function)
+{
+	char *my_data = NULL, *argv[2] = {0 };
+	int argc = 0;
+
+	if (!zstr(cmd)) {
+		my_data = strdup(cmd);
+		switch_assert(my_data);
+		argc = switch_separate_string(my_data, '=', argv, (sizeof(argv) / sizeof(argv[0])));
+	}
+
+	if (argc == 2 && !zstr(argv[1])) {
+
+		if (!strcmp(argv[1], "_undef_")) {
+			unsetenv(argv[0]);
+		} else {
+			setenv(argv[0], argv[1], TRUE);
+		}
+
+		stream->write_function(stream, "+OK\n");
+	} else {
+		stream->write_function(stream, "-ERR\n");
+	}
+
+	return SWITCH_STATUS_SUCCESS;
+}
 
 #define LOG_SYNTAX "<level> <message>"
 SWITCH_STANDARD_API(log_function)
@@ -7633,6 +7660,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_commands_load)
 	SWITCH_ADD_API(commands_api_interface, "switchname", "Return the switch name", switchname_api_function, "");
 	SWITCH_ADD_API(commands_api_interface, "gethost", "gethostbyname", gethost_api_function, "");
 	SWITCH_ADD_API(commands_api_interface, "getenv", "getenv", getenv_function, GETENV_SYNTAX);
+	SWITCH_ADD_API(commands_api_interface, "setenv", "setenv", setenv_function, SETENV_SYNTAX);
 	SWITCH_ADD_API(commands_api_interface, "hupall", "hupall", hupall_api_function, "<cause> [<var> <value>] [<var2> <value2>]");
 	SWITCH_ADD_API(commands_api_interface, "in_group", "Determine if a user is in a group", in_group_function, "<user>[@<domain>] <group_name>");
 	SWITCH_ADD_API(commands_api_interface, "is_lan_addr", "See if an ip is a lan addr", lan_addr_function, "<ip>");
