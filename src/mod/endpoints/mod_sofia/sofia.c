@@ -3287,6 +3287,7 @@ void *SWITCH_THREAD_FUNC sofia_profile_thread_run(switch_thread_t *thread, void 
 								  NTATAG_CLIENT_RPORT(profile->client_rport_level),
 								  TPTAG_LOG(sofia_test_flag(profile, TFLAG_TPORT_LOG)),
 								  TPTAG_CAPT(sofia_test_flag(profile, TFLAG_CAPTURE) ? mod_sofia_globals.capture_server : NULL),
+								  TPTAG_DUMP(profile->sip_dump_filename),
 								  TAG_IF(sofia_test_pflag(profile, PFLAG_SIPCOMPACT),
 										 NTATAG_SIPFLAGS(MSG_DO_COMPACT)),
 								  TAG_IF(profile->timer_t1, NTATAG_SIP_T1(profile->timer_t1)),
@@ -4762,6 +4763,13 @@ switch_status_t config_sofia(sofia_config_t reload, char *profile_name)
 							nua_set_params(profile->nua, TPTAG_CAPT(mod_sofia_globals.capture_server), TAG_END());
 						} else {
 							sofia_clear_flag(profile, TFLAG_CAPTURE);
+						}
+					} else if (!strcasecmp(var, "sip-dump-file")) {
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "SIP trace logging enabled in file %s\n", val);
+						if (!zstr(val)) {
+							profile->sip_dump_filename = switch_core_strdup(profile->pool, val);
+						} else {
+							profile->sip_dump_filename = NULL;
 						}
 					} else if (!strcasecmp(var, "socket-tcp-keepalive") && !zstr(val)) {
 						profile->socket_tcp_keepalive = atoi(val);
