@@ -1,4 +1,5 @@
 # gitattributes
+Makefile.am merge=union
 *.h text eol=lf
 *.hxx text eol=lf
 *.hpp text eol=lf
