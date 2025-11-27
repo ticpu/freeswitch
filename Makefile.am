@@ -543,7 +543,7 @@ src/switch_version.lo: src/include/switch_version.h
 
 src/include/switch_version.h: src/include/switch_version.h.in Makefile $(switch_builddir)/build/print_git_revision $(libfreeswitch_la_SOURCES) $(library_include_HEADERS)
 	@cat $< > $@; \
-	if [ -d $(switch_srcdir)/.git ] && [ -n "$$(which git)" ]; then \
+	if [ -e $(switch_srcdir)/.git ] && [ -n "$$(which git)" ]; then \
 	  xver="$$(cd $(switch_srcdir)/ && $(switch_builddir)/build/print_git_revision)"; \
 	  xhver="$$(cd $(switch_srcdir)/ && $(switch_builddir)/build/print_git_revision -h)"; \
 	  sed \
