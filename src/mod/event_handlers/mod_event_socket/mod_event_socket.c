@@ -31,6 +31,7 @@
  *
  */
 #include <switch.h>
+#include <pcre.h>
 #define CMD_BUFLEN 1024 * 1000
 #define MAX_LOG_CMD_LEN 256
 #define MAX_QUEUE_LEN 100000
@@ -119,6 +120,7 @@ static struct {
 } listen_list;
 
 #define MAX_ACL 100
+#define MAX_CMD_LOG_EXCLUDE 32
 
 static struct {
 	switch_mutex_t *mutex;
@@ -133,6 +135,8 @@ static struct {
 	int nat_map;
 	int stop_on_bind_error;
 	switch_log_level_t command_log_level;
+	char *cmd_log_exclude[MAX_CMD_LOG_EXCLUDE];
+	uint32_t cmd_log_exclude_count;
 } prefs;
 
 
@@ -351,7 +355,10 @@ static void event_handler(switch_event_t *event)
 						}
 
 						if (*hp->value == '/') {
-							cmp = !!switch_regex(hval, comp_to);
+							switch_regex_t *re = NULL;
+							int ovector[30];
+							cmp = !!switch_regex_perform(hval, comp_to, &re, ovector, sizeof(ovector) / sizeof(ovector[0]));
+							switch_regex_safe_free(re);
 						} else {
 							cmp = !strcasecmp(hval, comp_to);
 						}
@@ -596,6 +603,10 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_event_socket_shutdown)
 
 	switch_safe_free(prefs.ip);
 	switch_safe_free(prefs.password);
+
+	for (sanity = 0; sanity < (int)prefs.cmd_log_exclude_count; sanity++) {
+		switch_safe_free(prefs.cmd_log_exclude[sanity]);
+	}
 
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -1711,16 +1722,27 @@ static void set_allowed_custom(listener_t *listener)
 }
 
 static void log_event_socket_command(listener_t *listener, const char *cmd) {
-	if (prefs.command_log_level == SWITCH_LOG_INVALID
-		|| strncasecmp(cmd, "auth ", 5) == 0
-		|| strncasecmp(cmd, "userauth ", 5) == 0) {
+	char cmd_clean[MAX_LOG_CMD_LEN + 3] = {0};
+	const size_t cmd_len = strlen(cmd);
+	size_t copy_len = cmd_len < MAX_LOG_CMD_LEN ? cmd_len : MAX_LOG_CMD_LEN;
+	size_t i, j = 0;
+	uint32_t k;
+
+	if (prefs.command_log_level == SWITCH_LOG_INVALID) {
 		return;
 	}
 
-	char cmd_clean[MAX_LOG_CMD_LEN + 3] = {0};
-	size_t cmd_len = strlen(cmd);
-	size_t copy_len = cmd_len < MAX_LOG_CMD_LEN ? cmd_len : MAX_LOG_CMD_LEN;
-	size_t i, j = 0;
+	/* Security: always exclude auth commands (hardcoded) */
+	if (strncasecmp(cmd, "userauth ", 9) == 0 || strncasecmp(cmd, "auth ", 5) == 0) {
+		return;
+	}
+
+	/* Check configurable regex exclusions */
+	for (k = 0; k < prefs.cmd_log_exclude_count; k++) {
+		if (switch_regex_match(cmd, prefs.cmd_log_exclude[k]) == SWITCH_STATUS_SUCCESS) {
+			return;
+		}
+	}
 
 	/* Find first newline and limit copying to that */
 	for (i = 0; i < cmd_len; i++) {
@@ -2960,6 +2982,24 @@ static int config(void)
 									 "Invalid command-log-level: %s, using default INFO\n", val);
 							}
 						}
+					}
+				} else if (!strcasecmp(var, "command-log-exclude") && !zstr(val)) {
+					if (prefs.cmd_log_exclude_count < MAX_CMD_LOG_EXCLUDE) {
+						const char *err = NULL;
+						int erroffset = 0;
+						switch_regex_t *re = switch_regex_compile(val, PCRE_CASELESS, &err, &erroffset, NULL);
+						if (re) {
+							switch_regex_safe_free(re);
+							prefs.cmd_log_exclude[prefs.cmd_log_exclude_count++] = strdup(val);
+							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO,
+								"Added command-log-exclude pattern: %s\n", val);
+						} else {
+							switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
+								"Invalid command-log-exclude regex '%s' at offset %d: %s\n", val, erroffset, err ? err : "unknown error");
+						}
+					} else {
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+							"Max command-log-exclude of %d reached\n", MAX_CMD_LOG_EXCLUDE);
 					}
 				}
 			}
