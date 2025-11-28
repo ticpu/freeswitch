@@ -98,6 +98,7 @@ struct listener {
 	switch_port_t remote_port;
 	switch_event_t *filters;
 	time_t linger_timeout;
+	uint8_t disable_cmd_logging;
 	struct listener *next;
 	switch_pollfd_t *pollfd;
 	uint8_t lock_acquired;
@@ -1728,7 +1729,7 @@ static void log_event_socket_command(listener_t *listener, const char *cmd) {
 	size_t i, j = 0;
 	uint32_t k;
 
-	if (prefs.command_log_level == SWITCH_LOG_INVALID) {
+	if (prefs.command_log_level == SWITCH_LOG_INVALID || listener->disable_cmd_logging) {
 		return;
 	}
 
@@ -1834,6 +1835,7 @@ static switch_status_t parse_command(listener_t *listener, switch_event_t **even
 			char api_reply[512] = "Allowed-API: all\n";
 			char log_reply[512] = "";
 			int allowed_log = 1;
+			int disable_cmd_logging = 0;
 			char *tmp;
 
 			switch_clear_flag(listener, LFLAG_ALLOW_LOG);
@@ -1896,6 +1898,8 @@ static switch_status_t parse_command(listener_t *listener, switch_event_t **even
 								allowed_events = val;
 							} else if (!strcasecmp(var, "esl-allowed-api")) {
 								allowed_api = val;
+							} else if (!strcasecmp(var, "esl-disable-command-logging")) {
+								disable_cmd_logging = switch_true(val);
 							}
 						}
 					}
@@ -1964,6 +1968,8 @@ static switch_status_t parse_command(listener_t *listener, switch_event_t **even
 				if (allowed_log) {
 					switch_set_flag(listener, LFLAG_ALLOW_LOG);
 				}
+
+				listener->disable_cmd_logging = disable_cmd_logging;
 
 				if (allowed_api) {
 					char delim = ',';
