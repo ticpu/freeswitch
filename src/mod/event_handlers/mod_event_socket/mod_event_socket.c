@@ -1747,7 +1747,7 @@ static void log_event_socket_command(listener_t *listener, const char *cmd) {
 
 	if (strlen(cmd_clean) > 0) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, prefs.command_log_level,
-						 "Event Socket Command from %s:%d: %s",
+						 "Event Socket Command from %s:%d: %s\n",
 						 listener->remote_ip, listener->remote_port, cmd_clean);
 	}
 }
