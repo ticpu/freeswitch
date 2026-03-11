@@ -2894,7 +2894,7 @@ uint32_t sofia_profile_reg_count(sofia_profile_t *profile)
 	cb.buf = reg_count;
 	cb.len = sizeof(reg_count);
 	sql = switch_mprintf("select count(*) from sip_registrations where profile_name = '%q'", profile->name);
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sql2str_callback, &cb);
+	sofia_glue_execute_sql_callback(profile, sql, sql2str_callback, &cb);
 	free(sql);
 	return strtoul(reg_count, NULL, 10);
 }
@@ -3144,7 +3144,7 @@ static switch_status_t cmd_status(char **argv, int argc, switch_stream_handle_t 
 				if (sql) {
 					stream->write_function(stream, "\nRegistrations:\n%s\n", line);
 
-					sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, show_reg_callback, &cb);
+					sofia_glue_execute_sql_callback(profile, sql, show_reg_callback, &cb);
 					switch_safe_free(sql);
 
 					stream->write_function(stream, "Total items returned: %d\n", cb.row_process);
@@ -3449,7 +3449,7 @@ static switch_status_t cmd_xml_status(char **argv, int argc, switch_stream_handl
 				if (sql) {
 					stream->write_function(stream, "  <registrations>\n");
 
-					sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, show_reg_callback_xml, &cb);
+					sofia_glue_execute_sql_callback(profile, sql, show_reg_callback_xml, &cb);
 					switch_safe_free(sql);
 
 					stream->write_function(stream, "  </registrations>\n");
@@ -3923,7 +3923,7 @@ SWITCH_STANDARD_API(sofia_count_reg_function)
 									 user, domain, domain);
 			}
 			switch_assert(sql);
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sql2str_callback, &cb);
+			sofia_glue_execute_sql_callback(profile, sql, sql2str_callback, &cb);
 			switch_safe_free(sql);
 			if (!zstr(reg_count)) {
 				stream->write_function(stream, "%s", reg_count);
@@ -4013,7 +4013,7 @@ SWITCH_STANDARD_API(sofia_username_of_function)
 
 			switch_assert(sql);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sql2str_callback, &cb);
+			sofia_glue_execute_sql_callback(profile, sql, sql2str_callback, &cb);
 			switch_safe_free(sql);
 			if (!zstr(username)) {
 				stream->write_function(stream, "%s", username);
@@ -4072,7 +4072,7 @@ static void select_from_profile(sofia_profile_t *profile,
 			"and (sip_host='%q' or presence_hosts like '%%%q%%')%s%s",
 			(concat != NULL) ? concat : "", profile->name, user, domain, domain, (sql_match_user_agent!=NULL) ? sql_match_user_agent : "", (sql_exclude_contact!=NULL) ? sql_exclude_contact : "");
 	switch_assert(sql);
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, contact_callback, &cb);
+	sofia_glue_execute_sql_callback(profile, sql, contact_callback, &cb);
 	switch_safe_free(sql);
 	switch_safe_free(sql_exclude_contact);
 	switch_safe_free(sql_match_user_agent);
@@ -4275,7 +4275,7 @@ static void get_presence_data(sofia_profile_t *profile, const char *user, const 
 		" where r.sip_realm = '%q' and r.sip_user = '%q' and r.profile_name = '%q' ", select, domain, user, profile->name);
 
 	switch_assert(sql);
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, list_result_callback, &cb);
+	sofia_glue_execute_sql_callback(profile, sql, list_result_callback, &cb);
 	switch_safe_free(sql);
 	switch_safe_free(select);
 }
@@ -5536,9 +5536,7 @@ void general_event_handler(switch_event_t *event)
 				}
 
 
-				switch_mutex_lock(profile->dbh_mutex);
-				sofia_glue_execute_sql_callback(profile, NULL, sql, notify_callback, profile);
-				switch_mutex_unlock(profile->dbh_mutex);
+				sofia_glue_execute_sql_callback(profile, sql, notify_callback, profile);
 				sofia_glue_release_profile(profile);
 
 				free(sql);
@@ -5637,7 +5635,7 @@ void general_event_handler(switch_event_t *event)
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Query: %s\n", sql);
 				switch_safe_free(stream.data);
 				switch_mutex_lock(profile->ireg_mutex);
-				sofia_glue_execute_sql_callback(profile, NULL, sql, notify_csta_callback, profile);
+				sofia_glue_execute_sql_callback(profile, sql, notify_csta_callback, profile);
 				switch_mutex_unlock(profile->ireg_mutex);
 				sofia_glue_release_profile(profile);
 

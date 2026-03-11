@@ -436,7 +436,7 @@ void sofia_presence_cancel(void)
 										 "event='presence' and hostname='%q' and profile_name='%q'",
 										 mod_sofia_globals.hostname, profile->name);
 
-					r = sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_sub_callback, &helper);
+					r = sofia_glue_execute_sql_callback(profile, sql, sofia_presence_sub_callback, &helper);
 					switch_safe_free(sql);
 
 					if (r != SWITCH_TRUE) {
@@ -538,7 +538,7 @@ static void actual_sofia_presence_mwi_event_handler(switch_event_t *event)
 				for (m = matches->head; m; m = m->next) {
 					if ((profile = sofia_glue_find_profile(m->val))) {
 
-						sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+						sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 						if (!zstr(buf)) {
 							break;
 						}
@@ -604,7 +604,7 @@ static void actual_sofia_presence_mwi_event_handler(switch_event_t *event)
 
 
 	if (sql) {
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_mwi_callback, &h);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_presence_mwi_callback, &h);
 		free(sql);
 		sql = NULL;
 
@@ -622,7 +622,7 @@ static void actual_sofia_presence_mwi_event_handler(switch_event_t *event)
 
 	if (sql) {
 		switch_assert(sql != NULL);
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_mwi_callback2, &h);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_presence_mwi_callback2, &h);
 		free(sql);
 		sql = NULL;
 	}
@@ -716,7 +716,7 @@ static void do_normal_probe(switch_event_t *event)
 							 mod_sofia_globals.hostname, profile->name, probe_euser, probe_host, probe_euser, probe_host);
 
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_dialog_callback, &dh);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_presence_dialog_callback, &dh);
 
 		h.profile = profile;
 
@@ -770,7 +770,7 @@ static void do_normal_probe(switch_event_t *event)
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "%s DUMP PRESENCE_PROBE_SQL:\n%s\n", profile->name, sql);
 		}
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_resub_callback, &h);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_presence_resub_callback, &h);
 		switch_safe_free(sql);
 
 		if (!h.rowcount) {
@@ -797,7 +797,7 @@ static void do_normal_probe(switch_event_t *event)
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "%s DUMP PRESENCE_PROBE_SQL:\n%s\n", profile->name, sql);
 			}
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_resub_callback, &h);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_presence_resub_callback, &h);
 			switch_safe_free(sql);
 
 			if (mod_sofia_globals.debug_presence > 0) {
@@ -904,7 +904,7 @@ static void do_dialog_probe(switch_event_t *event)
 		h4235->pool = pool;
 		h4235->profile = profile;
 		switch_core_hash_init(&h4235->hash);
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_dialog_probe_callback, h4235);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_dialog_probe_callback, h4235);
 		switch_safe_free(sql);
 		if (mod_sofia_globals.debug_presence > 0) {
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "%s END DIALOG_PROBE_SQL\n\n", profile->name);
@@ -932,7 +932,7 @@ static void do_dialog_probe(switch_event_t *event)
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "%s DUMP DIALOG_PROBE subscription sql:\n%s\n", profile->name, sql);
 		}
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_dialog_probe_notify_callback, h4235);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_dialog_probe_notify_callback, h4235);
 		switch_safe_free(sql);
 
 		sofia_glue_release_profile(profile);
@@ -1027,7 +1027,7 @@ static void send_conference_data(sofia_profile_t *profile, switch_event_t *event
 							 from_user, from_host, event_str);
 	}
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_send_sql, &cb);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_presence_send_sql, &cb);
 	switch_safe_free(sql);
 
 	if (switch_true(final)) {
@@ -1233,7 +1233,7 @@ static switch_event_t *actual_sofia_presence_event_handler(switch_event_t *event
 					memset(&helper, 0, sizeof(helper));
 					helper.profile = profile;
 					helper.event = NULL;
-					sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_sub_callback, &helper);
+					sofia_glue_execute_sql_callback(profile, sql, sofia_presence_sub_callback, &helper);
 					switch_safe_free(sql);
 					sofia_glue_release_profile(profile);
 				}
@@ -1372,7 +1372,7 @@ static switch_event_t *actual_sofia_presence_event_handler(switch_event_t *event
 										 uuid, mod_sofia_globals.hostname, profile->name, euser, host, euser, host);
 				}
 
-				sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_dialog_callback, &dh);
+				sofia_glue_execute_sql_callback(profile, sql, sofia_presence_dialog_callback, &dh);
 
 				if (mod_sofia_globals.debug_presence > 0) {
 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_CRIT, "CHECK SQL: %s@%s [%s]\nhits: %d\n", euser, host, sql, dh.hits);
@@ -1525,7 +1525,7 @@ static switch_event_t *actual_sofia_presence_event_handler(switch_event_t *event
 					free(buf);
 				}
 
-				sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_sub_callback, &helper);
+				sofia_glue_execute_sql_callback(profile, sql, sofia_presence_sub_callback, &helper);
 				switch_safe_free(sql);
 
 				if (mod_sofia_globals.debug_presence > 0) {
@@ -3513,7 +3513,7 @@ static int sync_sla(sofia_profile_t *profile, const char *to_user, const char *t
 
 								 "and event='line-seize'", call_id);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_send_sql, &cb);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_presence_send_sql, &cb);
 			if (mod_sofia_globals.debug_sla > 1) {
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "CLEAR SQL %s\n", sql);
 			}
@@ -3544,7 +3544,7 @@ static int sync_sla(sofia_profile_t *profile, const char *to_user, const char *t
 								 mod_sofia_globals.hostname, profile->name, to_user, to_host
 								 );
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_send_sql, &cb);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_presence_send_sql, &cb);
 
 			if (mod_sofia_globals.debug_sla > 1) {
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "CLEAR SQL %s\n", sql);
@@ -3582,7 +3582,7 @@ static int sync_sla(sofia_profile_t *profile, const char *to_user, const char *t
 	if (mod_sofia_globals.debug_sla > 1) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "PRES SQL %s\n", sql);
 	}
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, broadsoft_sla_gather_state_callback, sh);
+	sofia_glue_execute_sql_callback(profile, sql, broadsoft_sla_gather_state_callback, sh);
 	switch_safe_free(sql);
 
 
@@ -3624,7 +3624,7 @@ static int sync_sla(sofia_profile_t *profile, const char *to_user, const char *t
 	}
 
 	sh->profile = profile;
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, broadsoft_sla_notify_callback, sh);
+	sofia_glue_execute_sql_callback(profile, sql, broadsoft_sla_notify_callback, sh);
 	switch_safe_free(sql);
 	total = sh->total;
 	switch_core_hash_destroy(&sh->hash);
@@ -3879,7 +3879,7 @@ void sofia_presence_handle_sip_i_subscribe(int status,
 	if ((sub_state != nua_substate_terminated)) {
 		sql = switch_mprintf("select contact from sip_subscriptions where call_id='%q' and profile_name='%q' and hostname='%q'",
 							 call_id, profile->name, mod_sofia_globals.hostname);
-		sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+		sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 
 
 		if (mod_sofia_globals.debug_presence > 0 || mod_sofia_globals.debug_sla > 0) {
@@ -4306,7 +4306,7 @@ void sofia_presence_handle_sip_i_subscribe(int status,
 			}
 
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_sub_reg_callback, profile);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_presence_sub_reg_callback, profile);
 
 			switch_safe_free(sql);
 		}
@@ -4545,7 +4545,7 @@ uint32_t sofia_presence_contact_count(sofia_profile_t *profile, const char *cont
 	sql = switch_mprintf("select count(*) from sip_subscriptions where hostname='%q' and profile_name='%q' and contact='%q'",
 						 mod_sofia_globals.hostname, profile->name, contact_str);
 
-	sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+	sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 	switch_safe_free(sql);
 	return atoi(buf);
 }
@@ -4688,7 +4688,7 @@ void sofia_presence_handle_sip_i_publish(nua_t *nua, sofia_profile_t *profile, n
 									 mod_sofia_globals.hostname, profile->name,
 									 from_user, from_host, event_type, contact_str);
 
-				sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_send_sql, &cb);
+				sofia_glue_execute_sql_callback(profile, sql, sofia_presence_send_sql, &cb);
 				switch_safe_free(sql);
 			}
 
@@ -5088,7 +5088,7 @@ void sofia_presence_check_subscriptions(sofia_profile_t *profile, time_t now)
 							 " from sip_subscriptions where ((expires > 0 and expires <= %ld)) and profile_name='%q' and hostname='%q'",
 							 (long) now, profile->name, mod_sofia_globals.hostname);
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_presence_send_sql, &cb);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_presence_send_sql, &cb);
 		switch_safe_free(sql);
 
 		if (cb.ttl) {

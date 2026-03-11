@@ -791,7 +791,7 @@ void sofia_reg_expire_call_id(sofia_profile_t *profile, const char *call_id, int
 						 ",%d,sip_realm from sip_registrations where call_id='%q' %s", reboot, call_id, sqlextra);
 
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_del_callback, profile);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_del_callback, profile);
 	switch_safe_free(sql);
 
 	sql = switch_mprintf("delete from sip_registrations where call_id='%q' %s", call_id, sqlextra);
@@ -816,7 +816,7 @@ void sofia_reg_check_expire(sofia_profile_t *profile, time_t now, int reboot)
 						",user_agent,server_user,server_host,profile_name,network_ip, network_port" ",%d,sip_realm from sip_registrations where expires > 0", reboot);
 	}
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_del_callback, profile);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_del_callback, profile);
 	free(sql);
 
 	if (now) {
@@ -834,7 +834,7 @@ void sofia_reg_check_expire(sofia_profile_t *profile, time_t now, int reboot)
 		sql = switch_mprintf("select call_id from sip_shared_appearance_dialogs where hostname='%q' "
 						"and profile_name='%q' and expires <= %ld", mod_sofia_globals.hostname, profile->name, (long) now);
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_sla_dialog_del_callback, profile);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_sla_dialog_del_callback, profile);
 		free(sql);
 
 		sql = switch_mprintf("delete from sip_shared_appearance_dialogs where expires > 0 and hostname='%q' and expires <= %ld",
@@ -906,7 +906,7 @@ void sofia_reg_check_ping_expire(sofia_profile_t *profile, time_t now, int inter
 								 "ping_expires > 0 and ping_expires <= %ld",
 								 mod_sofia_globals.hostname, profile->name, mod_sofia_globals.hostname, (long) now);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_nat_callback, profile);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_reg_nat_callback, profile);
 			switch_safe_free(sql);
 		} else if (sofia_test_pflag(profile, PFLAG_UDP_NAT_OPTIONS_PING)) {
 			sql = switch_mprintf(" select call_id,sip_user,sip_host,contact,status,rpid, "
@@ -915,7 +915,7 @@ void sofia_reg_check_ping_expire(sofia_profile_t *profile, time_t now, int inter
 								 " and hostname='%q' and profile_name='%q' and ping_expires > 0 and ping_expires <= %ld ",
 								 mod_sofia_globals.hostname, profile->name, (long) now);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_nat_callback, profile);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_reg_nat_callback, profile);
 			switch_safe_free(sql);
 		} else if (sofia_test_pflag(profile, PFLAG_NAT_OPTIONS_PING)) {
 			sql = switch_mprintf("select call_id,sip_user,sip_host,contact,status,rpid,"
@@ -926,7 +926,7 @@ void sofia_reg_check_ping_expire(sofia_profile_t *profile, time_t now, int inter
 								 "ping_expires > 0 and ping_expires <= %ld",
 								 mod_sofia_globals.hostname, profile->name, mod_sofia_globals.hostname, (long) now);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_nat_callback, profile);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_reg_nat_callback, profile);
 			switch_safe_free(sql);
 		} else {
 			sql = switch_mprintf("select call_id,sip_user,sip_host,contact,status,rpid,"
@@ -936,14 +936,14 @@ void sofia_reg_check_ping_expire(sofia_profile_t *profile, time_t now, int inter
 								 "ping_expires > 0 and ping_expires <= %ld",
 								 mod_sofia_globals.hostname, profile->name, mod_sofia_globals.hostname, (long) now);
 
-			sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_nat_callback, profile);
+			sofia_glue_execute_sql_callback(profile, sql, sofia_reg_nat_callback, profile);
 			switch_safe_free(sql);
 		}
 
 		sql = switch_mprintf("select count(*) from sip_registrations where hostname='%q' and profile_name='%q' and ping_expires <= %ld",
 							 mod_sofia_globals.hostname, profile->name, (long) now);
 
-		sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+		sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 		switch_safe_free(sql);
 		count = atoi(buf);
 
@@ -1000,7 +1000,7 @@ void sofia_reg_check_call_id(sofia_profile_t *profile, const char *call_id)
 						 " from sip_registrations where call_id='%q' %s", call_id, sqlextra);
 
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_check_callback, profile);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_check_callback, profile);
 
 
 	switch_safe_free(sql);
@@ -1018,7 +1018,7 @@ void sofia_reg_check_sync(sofia_profile_t *profile)
 					" from sip_registrations where expires > 0");
 
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_del_callback, profile);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_del_callback, profile);
 	switch_safe_free(sql);
 
 	sql = switch_mprintf("delete from sip_registrations where expires > 0 and hostname='%q'", mod_sofia_globals.hostname);
@@ -1059,7 +1059,7 @@ char *sofia_reg_find_reg_url(sofia_profile_t *profile, const char *user, const c
 	}
 
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_find_callback, &cbt);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_find_callback, &cbt);
 
 	switch_safe_free(sql);
 
@@ -1093,7 +1093,7 @@ switch_console_callback_match_t *sofia_reg_find_reg_url_multi(sofia_profile_t *p
 	}
 
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_find_callback, &cbt);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_find_callback, &cbt);
 
 	switch_safe_free(sql);
 
@@ -1122,7 +1122,7 @@ switch_console_callback_match_t *sofia_reg_find_reg_url_with_positive_expires_mu
 	cbt.contact_str = contact_str;
 	cbt.exptime = exptime;
 
-	sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_find_reg_with_positive_expires_callback, &cbt);
+	sofia_glue_execute_sql_callback(profile, sql, sofia_reg_find_reg_with_positive_expires_callback, &cbt);
 	free(sql);
 
 	return cbt.list;
@@ -1235,7 +1235,7 @@ uint32_t sofia_reg_reg_count(sofia_profile_t *profile, const char *user, const c
 	sql = switch_mprintf("select count(*) from sip_registrations where profile_name='%q' and "
 						 "sip_user='%q' and (sip_host='%q' or presence_hosts like '%%%q%%')", profile->name, user, host, host);
 
-	sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+	sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 	switch_safe_free(sql);
 	return atoi(buf);
 }
@@ -1955,7 +1955,7 @@ uint8_t sofia_reg_handle_register_token(nua_t *nua, sofia_profile_t *profile, nu
 
 
 
-			sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+			sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 			switch_safe_free(sql);
 			if (atoi(buf) > 0) {
 				update_registration = SWITCH_TRUE;
@@ -3105,10 +3105,10 @@ auth_res_t sofia_reg_parse_auth(sofia_profile_t *profile,
 
 		switch_assert(sql != NULL);
 
-		sofia_glue_execute_sql_callback(profile, profile->dbh_mutex, sql, sofia_reg_nonce_callback, &cb);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_reg_nonce_callback, &cb);
 		free(sql);
 
-		//if (!sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, np, nplen)) {
+		//if (!sofia_glue_execute_sql2str(profile, sql, np, nplen)) {
 		if (zstr(np) || (profile->max_auth_validity != 0 && (uint32_t)cb.last_nc >= profile->max_auth_validity )) {
 			sql = switch_mprintf("delete from sip_authentication where nonce='%q'", nonce);
 			sofia_glue_execute_sql(profile, &sql, SWITCH_TRUE);
@@ -3376,7 +3376,7 @@ auth_res_t sofia_reg_parse_auth(sofia_profile_t *profile,
 		sql = switch_mprintf("select count(sip_user) from sip_registrations where sip_user='%q' AND call_id <> '%q' AND sip_host='%q'",
 							 sip->sip_to->a_url->url_user, call_id, domain_name);
 		switch_assert(sql != NULL);
-		sofia_glue_execute_sql_callback(profile, NULL, sql, sofia_reg_regcount_callback, &count);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_reg_regcount_callback, &count);
 		free(sql);
 
 		if (count + 1 > max_registrations_perext) {

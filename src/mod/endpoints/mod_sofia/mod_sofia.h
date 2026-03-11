@@ -708,7 +708,6 @@ struct sofia_profile {
 	switch_payload_t cng_pt;
 	uint32_t codec_flags;
 	switch_mutex_t *ireg_mutex;
-	switch_mutex_t *dbh_mutex;
 	switch_mutex_t *gateway_mutex;
 	sofia_gateway_t *gateways;
 	//su_home_t *home;
@@ -1072,8 +1071,8 @@ void sofia_presence_handle_sip_i_subscribe(int status, char const *phrase, nua_t
 								sofia_dispatch_event_t *de, tagi_t tags[]);
 
 void sofia_glue_execute_sql(sofia_profile_t *profile, char **sqlp, switch_bool_t sql_already_dynamic);
-void sofia_glue_actually_execute_sql(sofia_profile_t *profile, char *sql, switch_mutex_t *mutex);
-void sofia_glue_actually_execute_sql_trans(sofia_profile_t *profile, char *sql, switch_mutex_t *mutex);
+void sofia_glue_actually_execute_sql(sofia_profile_t *profile, char *sql);
+void sofia_glue_actually_execute_sql_trans(sofia_profile_t *profile, char *sql);
 void sofia_glue_execute_sql_now(sofia_profile_t *profile, char **sqlp, switch_bool_t sql_already_dynamic);
 void sofia_glue_execute_sql_soon(sofia_profile_t *profile, char **sqlp, switch_bool_t sql_already_dynamic);
 void sofia_reg_check_expire(sofia_profile_t *profile, time_t now, int reboot);
@@ -1102,9 +1101,9 @@ void sofia_glue_sql_close(sofia_profile_t *profile, time_t prune);
 int sofia_glue_init_sql(sofia_profile_t *profile);
 char *sofia_overcome_sip_uri_weakness(switch_core_session_t *session, const char *uri, const sofia_transport_t transport, switch_bool_t uri_only,
 									  const char *params, const char *invite_tel_params);
-switch_bool_t sofia_glue_execute_sql_callback(sofia_profile_t *profile, switch_mutex_t *mutex, char *sql, switch_core_db_callback_func_t callback,
+switch_bool_t sofia_glue_execute_sql_callback(sofia_profile_t *profile, char *sql, switch_core_db_callback_func_t callback,
 											  void *pdata);
-char *sofia_glue_execute_sql2str(sofia_profile_t *profile, switch_mutex_t *mutex, char *sql, char *resbuf, size_t len);
+char *sofia_glue_execute_sql2str(sofia_profile_t *profile, char *sql, char *resbuf, size_t len);
 void sofia_glue_del_profile(sofia_profile_t *profile);
 
 switch_status_t sofia_glue_add_profile(char *key, sofia_profile_t *profile);

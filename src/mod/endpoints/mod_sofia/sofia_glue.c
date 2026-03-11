@@ -2756,9 +2756,12 @@ void sofia_glue_execute_sql_now(sofia_profile_t *profile, char **sqlp, switch_bo
 	switch_assert(sqlp && *sqlp);
 	sql = *sqlp;
 
-	switch_mutex_lock(profile->dbh_mutex);
+	/* No profile-level mutex: push_confirm(EXEC_NOW) acquires its own
+	   exclusive DB handle from the pool.  Holding dbh_mutex here serialised
+	   every synchronous write through a single lock, causing thread
+	   starvation and 503 "System Busy" under load with external databases
+	   (see signalwire/freeswitch#908). */
 	switch_sql_queue_manager_push_confirm(profile->qm, sql, 0, !sql_already_dynamic);
-	switch_mutex_unlock(profile->dbh_mutex);
 
 	if (sql_already_dynamic) {
 		*sqlp = NULL;
@@ -2798,19 +2801,13 @@ switch_cache_db_handle_t *_sofia_glue_get_db_handle(sofia_profile_t *profile, co
 	return dbh;
 }
 
-void sofia_glue_actually_execute_sql_trans(sofia_profile_t *profile, char *sql, switch_mutex_t *mutex)
+void sofia_glue_actually_execute_sql_trans(sofia_profile_t *profile, char *sql)
 {
 	switch_cache_db_handle_t *dbh = NULL;
 
-	if (mutex) {
-		switch_mutex_lock(mutex);
-	}
-
-
 	if (!(dbh = sofia_glue_get_db_handle(profile))) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error Opening DB\n");
-
-		goto end;
+		return;
 	}
 
 	switch_cache_db_persistant_execute_trans_full(dbh, sql, 1,
@@ -2821,38 +2818,19 @@ void sofia_glue_actually_execute_sql_trans(sofia_profile_t *profile, char *sql, 
 												  );
 
 	switch_cache_db_release_db_handle(&dbh);
-
- end:
-
-	if (mutex) {
-		switch_mutex_unlock(mutex);
-	}
 }
 
-void sofia_glue_actually_execute_sql(sofia_profile_t *profile, char *sql, switch_mutex_t *mutex)
+void sofia_glue_actually_execute_sql(sofia_profile_t *profile, char *sql)
 {
 	switch_cache_db_handle_t *dbh = NULL;
 	char *err = NULL;
 
-	if (mutex) {
-		switch_mutex_lock(mutex);
-	}
-
 	if (!(dbh = sofia_glue_get_db_handle(profile))) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error Opening DB\n");
-
-		if (mutex) {
-			switch_mutex_unlock(mutex);
-		}
-
 		return;
 	}
 
 	switch_cache_db_execute_sql(dbh, sql, &err);
-
-	if (mutex) {
-		switch_mutex_unlock(mutex);
-	}
 
 	if (err) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "SQL ERR: [%s]\n%s\n", err, sql);
@@ -2863,31 +2841,18 @@ void sofia_glue_actually_execute_sql(sofia_profile_t *profile, char *sql, switch
 }
 
 switch_bool_t sofia_glue_execute_sql_callback(sofia_profile_t *profile,
-											  switch_mutex_t *mutex, char *sql, switch_core_db_callback_func_t callback, void *pdata)
+											  char *sql, switch_core_db_callback_func_t callback, void *pdata)
 {
 	switch_bool_t ret = SWITCH_FALSE;
 	char *errmsg = NULL;
 	switch_cache_db_handle_t *dbh = NULL;
 
-	if (mutex) {
-		switch_mutex_lock(mutex);
-	}
-
 	if (!(dbh = sofia_glue_get_db_handle(profile))) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error Opening DB\n");
-
-		if (mutex) {
-			switch_mutex_unlock(mutex);
-		}
-
 		return ret;
 	}
 
 	switch_cache_db_execute_sql_callback(dbh, sql, callback, pdata, &errmsg);
-
-	if (mutex) {
-		switch_mutex_unlock(mutex);
-	}
 
 	if (errmsg) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "SQL ERR: [%s] %s\n", sql, errmsg);
@@ -2899,31 +2864,18 @@ switch_bool_t sofia_glue_execute_sql_callback(sofia_profile_t *profile,
 	return ret;
 }
 
-char *sofia_glue_execute_sql2str(sofia_profile_t *profile, switch_mutex_t *mutex, char *sql, char *resbuf, size_t len)
+char *sofia_glue_execute_sql2str(sofia_profile_t *profile, char *sql, char *resbuf, size_t len)
 {
 	char *ret = NULL;
 	char *err = NULL;
 	switch_cache_db_handle_t *dbh = NULL;
 
-	if (mutex) {
-		switch_mutex_lock(mutex);
-	}
-
 	if (!(dbh = sofia_glue_get_db_handle(profile))) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error Opening DB\n");
-
-		if (mutex) {
-			switch_mutex_unlock(mutex);
-		}
-
 		return NULL;
 	}
 
 	ret = switch_cache_db_execute_sql2str(dbh, sql, resbuf, len, &err);
-
-	if (mutex) {
-		switch_mutex_unlock(mutex);
-	}
 
 	if (err) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "SQL ERR: [%s]\n%s\n", err, sql);

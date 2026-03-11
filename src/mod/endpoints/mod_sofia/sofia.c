@@ -3422,7 +3422,6 @@ void *SWITCH_THREAD_FUNC sofia_profile_thread_run(switch_thread_t *thread, void 
 	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Activated db for %s\n", profile->name);
 
 	switch_mutex_init(&profile->ireg_mutex, SWITCH_MUTEX_NESTED, profile->pool);
-	switch_mutex_init(&profile->dbh_mutex, SWITCH_MUTEX_NESTED, profile->pool);
 	switch_mutex_init(&profile->gateway_mutex, SWITCH_MUTEX_NESTED, profile->pool);
 	switch_queue_create(&profile->event_queue, SOFIA_QUEUE_SIZE, profile->pool);
 
@@ -6527,7 +6526,7 @@ static void sofia_handle_sip_r_options(switch_core_session_t *session, int statu
 		sip_user_status.contact_len = sizeof(sip_contact);
 		sql = switch_mprintf("select ping_status, ping_count, contact from sip_registrations where sip_user='%q' and sip_host='%q' and call_id='%q'",
 				     sip->sip_to->a_url->url_user, sip->sip_to->a_url->url_host, call_id);
-		sofia_glue_execute_sql_callback(profile, profile->ireg_mutex, sql, sofia_sip_user_status_callback, &sip_user_status);
+		sofia_glue_execute_sql_callback(profile, sql, sofia_sip_user_status_callback, &sip_user_status);
 		switch_safe_free(sql);
 
 		if (status != 200 && status != 486) {
@@ -6728,7 +6727,7 @@ static void sofia_handle_sip_r_invite(switch_core_session_t *session, int status
 						switch_mprintf("select 'appearance-index=1' from sip_subscriptions where expires > -1 and hostname='%q' and event='call-info' and "
 									   "sub_to_user='%q' and sub_to_host='%q'", mod_sofia_globals.hostname, sip->sip_to->a_url->url_user,
 									   sip->sip_from->a_url->url_host);
-					sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+					sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 
 					if (mod_sofia_globals.debug_sla > 1) {
 						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "QUERY SQL %s [%s]\n", sql, buf);
@@ -11247,7 +11246,7 @@ void sofia_handle_sip_i_invite(switch_core_session_t *session, nua_t *nua, sofia
 				switch_mprintf("select 'appearance-index=1' from sip_subscriptions where expires > -1 and hostname='%q' and event='call-info' and "
 							   "sub_to_user='%q' and sub_to_host='%q'", mod_sofia_globals.hostname, sip->sip_to->a_url->url_user,
 							   sip->sip_from->a_url->url_host);
-			sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, buf, sizeof(buf));
+			sofia_glue_execute_sql2str(profile, sql, buf, sizeof(buf));
 
 			if (mod_sofia_globals.debug_sla > 1) {
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "QUERY SQL %s [%s]\n", sql, buf);
@@ -11383,7 +11382,7 @@ void sofia_handle_sip_i_invite(switch_core_session_t *session, nua_t *nua, sofia
 			  "((sip_from_user='%q' and sip_from_host='%q') or presence_id='%q@%q') and call_id is not null",
 				 switch_str_nil(p), switch_str_nil(p), user, host, user, host);
 
-			if ((str = sofia_glue_execute_sql2str(profile, profile->dbh_mutex, sql, cid, sizeof(cid)))) {
+			if ((str = sofia_glue_execute_sql2str(profile, sql, cid, sizeof(cid)))) {
 				bnh = nua_handle_by_call_id(nua, str);
 			}
 
